@@ -23,3 +23,10 @@ local function playSoundFromCoords(data)
 end
 
 exports('PlaySoundFromCoords', playSoundFromCoords)
+
+--nt: add stop sound logic
+local function stopSoundName(data)
+    TriggerClientEvent('mana_audio:client:stopSoundName', -1, data)
+end
+
+exports('StopSound', stopSoundName)

@@ -5,6 +5,10 @@ author 'Manason'
 description 'API for playing native audio'
 version '1.1.1'
 
+shared_scripts {
+    '@ox_lib/init.lua',
+}
+
 server_scripts {
 	'server/*'
 }

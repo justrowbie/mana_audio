@@ -1,3 +1,5 @@
+local soundData = {}
+
 local function loadAudioBank(audioBank)
     if not audioBank then return end
     local timeout = 500
@@ -26,11 +28,20 @@ local function playSound(data)
     if type(data.audioName) == 'string' then
         data.audioName = {data.audioName}
     end
+
+    --nt: add stop sound logic
+    soundData[cache.serverId] = {
+        audioName = data.audioName,
+        audioRef = data.audioRef,
+        soundId = {}
+    }
     loadAudioBank(data.audioBank)
     for i = 1, #data.audioName do
-        local audioName = data.audioName[i]
+        local audioName = soundData[cache.serverId].audioName[i]
+        local audioRef = soundData[cache.serverId].audioRef
         local soundId = GetSoundId()
-        PlaySoundFrontend(soundId, audioName, data.audioRef, false)
+        soundData[cache.serverId].soundId[audioName] = soundId
+        PlaySoundFrontend(soundId, audioName, audioRef, false)
         ReleaseSoundId(soundId)
     end
     releaseAudioBank(data.audioBank)
@@ -49,11 +60,23 @@ local function playSoundFromEntity(data)
     if type(data.audioName) == 'string' then
         data.audioName = {data.audioName}
     end
+
+    --nt: add stop sound logic
+    soundData[cache.serverId] = {
+        audioName = data.audioName,
+        audioBank = data.audioBank,
+        audioRef = data.audioRef,
+        audioEntity = data.entity, 
+        soundId = {}
+    }
     loadAudioBank(data.audioBank)
     for i = 1, #data.audioName do
-        local audioName = data.audioName[i]
+        local audioName = soundData[cache.serverId].audioName[i]
+        local audioRef = soundData[cache.serverId].audioRef
+        local audioEntity = soundData[cache.serverId].audioEntity
         local soundId = GetSoundId()
-        PlaySoundFromEntity(soundId, audioName, data.entity, data.audioRef, false, false)
+        soundData[cache.serverId].soundId[audioName] = soundId
+        PlaySoundFromEntity(soundId, audioName, audioEntity, audioRef, false, false)
         ReleaseSoundId(soundId)
     end
     releaseAudioBank(data.audioBank)
@@ -80,15 +103,47 @@ local function playSoundFromCoords(data)
     if type(data.audioName) == 'string' then
         data.audioName = {data.audioName}
     end
-    loadAudioBank(data.audioBank)
-    for i = 1, #data.audioName do
-        local audioName = data.audioName[i]
+    
+    --nt: add stop sound logic
+    soundData[cache.serverId] = {
+        audioName = data.audioName,
+        audioBank = data.audioBank,
+        audioRef = data.audioRef,
+        coords = data.coords,
+        range = data.range,
+        soundId = {}
+    }
+    loadAudioBank(soundData[cache.serverId].audioBank)
+    for i = 1, #soundData[cache.serverId].audioName do
+        local audioName = soundData[cache.serverId].audioName[i]
+        local audioRef = soundData[cache.serverId].audioRef
+        local audioCoords = soundData[cache.serverId].coords
+        local audioRange = soundData[cache.serverId].range
         local soundId = GetSoundId()
-        PlaySoundFromCoord(soundId, audioName, data.coords.x, data.coords.y, data.coords.z, data.audioRef, false, data.range, false)
+        soundData[cache.serverId].soundId[audioName] = soundId
+        PlaySoundFromCoord(soundId, audioName, audioCoords.x, audioCoords.y, audioCoords.z, audioRef, false, audioRange, false)
         ReleaseSoundId(soundId)
     end
-    releaseAudioBank(data.audioBank)
+    releaseAudioBank(soundData[cache.serverId].audioBank)
 end
 
 exports('PlaySoundFromCoords', playSoundFromCoords)
 RegisterNetEvent('mana_audio:client:playSoundFromCoords', playSoundFromCoords)
+
+--nt: add stop sound logic
+local function stopSoundName(data)
+    if data then
+        for k,v in pairs(soundData[cache.serverId].soundId) do
+            if k == data.audioName then
+                StopSound(v)
+                soundData[cache.serverId].soundId[k] = soundData[cache.serverId].soundId[k] - 1
+            else
+                StopSound(0)
+            end
+        end
+        ReleaseNamedScriptAudioBank('audiodirectory/'..data.audioBank)
+    end
+end
+
+exports('StopSound', stopSoundName)
+RegisterNetEvent('mana_audio:client:stopSoundName', stopSoundName)
